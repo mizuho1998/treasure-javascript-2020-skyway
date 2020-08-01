@@ -1,7 +1,13 @@
 (async function(){
     console.log("hello treasure");
     let localStream;
+    let dataConnection
 
+    const localText = document.getElementById('js-local-text');
+    const sendTrigger = document.getElementById('js-send-trigger');
+    const messages = document.getElementById('js-messages');
+    const meta = document.getElementById('js-meta');
+    
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         const videoElement = document.getElementById('my-video');
@@ -24,6 +30,37 @@
     document.getElementById('make-call').onclick = () => {
         const theirID = document.getElementById('their-id').value;
         const mediaConnection = peer.call(theirID, localStream);
+
+        dataConnection = peer.connect(theirID);
+
+        dataConnection.once('open', async () => {
+            messages.textContent += `=== DataConnection has been opened ===\n`;
+      
+            sendTrigger.addEventListener('click', onClickSend);
+          });
+      
+          dataConnection.on('data', data => {
+            messages.textContent += `Remote: ${data}\n`;
+          });
+      
+          dataConnection.once('close', () => {
+            messages.textContent += `=== DataConnection has been closed ===\n`;
+            sendTrigger.removeEventListener('click', onClickSend);
+          });
+      
+          // Register closing handler
+          closeTrigger.addEventListener('click', () => dataConnection.close(), {
+            once: true,
+          });
+      
+          function onClickSend() {
+            const data = localText.value;
+            dataConnection.send(data);
+      
+            messages.textContent += `You: ${data}\n`;
+            localText.value = '';
+          }
+        
         setEventListener(mediaConnection);
     };
     
@@ -42,4 +79,35 @@
         mediaConnection.answer(localStream);
         setEventListener(mediaConnection);
     });
+
+
+    peer.on('connection', dataConnection => {
+        dataConnection.once('open', async () => {
+          messages.textContent += `=== DataConnection has been opened ===\n`;
+    
+          sendTrigger.addEventListener('click', onClickSend);
+        });
+    
+        dataConnection.on('data', data => {
+          messages.textContent += `Remote: ${data}\n`;
+        });
+    
+        dataConnection.once('close', () => {
+          messages.textContent += `=== DataConnection has been closed ===\n`;
+          sendTrigger.removeEventListener('click', onClickSend);
+        });
+    
+        // Register closing handler
+        closeTrigger.addEventListener('click', () => dataConnection.close(), {
+          once: true,
+        });
+    
+        function onClickSend() {
+          const data = localText.value;
+          dataConnection.send(data);
+    
+          messages.textContent += `You: ${data}\n`;
+          localText.value = '';
+        }
+      });
 })();
