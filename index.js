@@ -5,8 +5,6 @@
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         const videoElement = document.getElementById('my-video');
-        console.log(localStream);
-        console.log(videoElement);
         videoElement.srcObject = localStream;
         videoElement.play();
     } catch(error) {
